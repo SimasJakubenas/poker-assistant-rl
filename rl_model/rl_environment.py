@@ -37,9 +37,6 @@ class PokerEnv:
             # Following actions are for bet sizing (index 3 and above)
             # These will be dynamically determined based on legal actions
         }
-        
-        # Reset the environment to start a new hand
-        self.reset()
     
     def reset(self):
         """
@@ -66,6 +63,7 @@ class PokerEnv:
         Returns:
             Tuple of (next_state, reward, done, info)
         """
+        self.render()
         if self.terminal:
             return self._get_observation(), 0.0, True, {"info": "Hand already complete"}
             
@@ -105,7 +103,6 @@ class PokerEnv:
             # Immediate reward for the action taken
             self.rewards[prev_player] = immediate_reward
         
-        self.render()
             
         return self._get_observation(), self.rewards[prev_player], self.terminal, {}
     

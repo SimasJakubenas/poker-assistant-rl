@@ -485,13 +485,19 @@ class PokerTable:
             
         # Get positions of active players
         positions = {p.player_id: p.position for p in active_players}
-        
         # Find current player position
         current_pos = positions.get(self.current_player_idx)
+        
         if current_pos is None:
             # Find the first player after the button
-            sorted_positions = sorted(positions.items(), key=lambda x: x[1])
+            sorted_positions = sorted(positions.items(), key=lambda x: x[0]) # Sort the keys
+            for position in sorted_positions:
+                if position[0] >= self.current_player_idx:
+                    return position[0]  # Return the next highest key
             return sorted_positions[0][0]
+            # sorted_positions = sorted(positions.items(), key=lambda x: x[1])
+            # print(f"Sorted-{sorted_positions}")
+            # return sorted_positions[0][0]
             
         # Find the next player by position
         next_players = [(p_id, pos) for p_id, pos in positions.items() 
