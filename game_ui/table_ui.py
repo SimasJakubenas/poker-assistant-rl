@@ -173,6 +173,15 @@ class PokerTableUI:
                     self._execute_ai_action()
                     self.last_action_time = current_time
             
+            all_players_acted = self.env.table._all_players_acted()
+            
+            if all_players_acted == True:
+                pygame.time.wait(1500)
+                self.env.table._advance_game()
+            
+            if self.env.table.hand_complete == True:
+                self.env.terminal = True
+            
             # Render the game
             self.render()
             
