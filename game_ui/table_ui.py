@@ -40,7 +40,7 @@ class PokerTableUI:
         's': '♠'
     }
     
-    def __init__(self, env: PokerEnv, width: int = 1024, height: int = 768, human_player: Optional[int] = None):
+    def __init__(self, env: PokerEnv, width: int = 1200, height: int = 900, human_player: Optional[int] = None):
         """
         Initialize the poker table UI.
         
@@ -114,9 +114,15 @@ class PokerTableUI:
         # 6-max table positions
         angles = [math.pi/2, 5*math.pi/6, 7*math.pi/6, 3*math.pi/2, 11*math.pi/6, math.pi/6]
         
-        for angle in angles:
+        for i, angle in enumerate(angles):
             x = center_x + radius * math.cos(angle)
             y = center_y + radius * math.sin(angle)
+            
+            # Move top and bottom player positions closer to the middle
+            if i == 0:
+                y -= 80
+            if i == 3:
+                y += 80
             positions.append((int(x), int(y)))
             
         return positions
@@ -381,7 +387,9 @@ class PokerTableUI:
             seat_positions = self._get_seat_positions()
             if button_pos in seat_positions:
                 btn_x, btn_y = seat_positions[button_pos]
-                btn_radius = 15
+                btn_x -= 55
+                btn_y += 55
+                btn_radius = 30
                 pygame.draw.circle(self.screen, self.WHITE, (btn_x, btn_y), btn_radius)
                 pygame.draw.circle(self.screen, self.BLACK, (btn_x, btn_y), btn_radius - 2, 2)
                 dealer_text = self.small_font.render("D", True, self.BLACK)
@@ -467,11 +475,11 @@ class PokerTableUI:
         
         # Player name/ID
         player_text = self.medium_font.render(f"Player {player_id}", True, self.BLACK)
-        self.screen.blit(player_text, (pos_x - player_text.get_width() // 2, pos_y - rect_height // 2 + 10))
+        self.screen.blit(player_text, (pos_x - player_text.get_width() // 2, pos_y - rect_height // 2 - 40))
         
         # Player stack
         stack_text = self.small_font.render(f"Stack: ${info['stack']:.2f}", True, self.BLACK)
-        self.screen.blit(stack_text, (pos_x - stack_text.get_width() // 2, pos_y - rect_height // 2 + 40))
+        self.screen.blit(stack_text, (pos_x - stack_text.get_width() // 2, pos_y - rect_height // 2))
         
         # Player cards
         card_y = pos_y - 5
@@ -499,17 +507,17 @@ class PokerTableUI:
         
         if status_text:
             status_render = self.small_font.render(status_text, True, self.RED)
-            self.screen.blit(status_render, (pos_x - status_render.get_width() // 2, pos_y + rect_height // 2 - 30))
+            self.screen.blit(status_render, (pos_x - status_render.get_width() // 2, pos_y + rect_height // 2))
         
         # Current bet
         if info['current_bet'] > 0:
             bet_text = self.small_font.render(f"Bet: ${info['current_bet']:.2f}", True, self.BLACK)
-            self.screen.blit(bet_text, (pos_x - bet_text.get_width() // 2, pos_y + rect_height // 2 - 50))
+            self.screen.blit(bet_text, (pos_x - bet_text.get_width() // 2, pos_y + rect_height // 2 - 130))
         
         # Last action
         if info['last_action']:
             action_text = self.small_font.render(f"{info['last_action']}", True, self.BLACK)
-            self.screen.blit(action_text, (pos_x - action_text.get_width() // 2, pos_y + rect_height // 2 - 30))
+            self.screen.blit(action_text, (pos_x - action_text.get_width() // 2, pos_y + rect_height // 2 - 110))
     
     def _draw_card(self, card_str: str, x: int, y: int, scale: float = 1.0):
         """
