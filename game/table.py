@@ -436,7 +436,6 @@ class PokerTable:
         
         # Record the winners in the hand history
         self._record_action("WINNER", -1, 0, {"winners": winners, "amount_per_winner": amount_per_winner})
-        
         # Mark the hand as complete
         self.hand_complete = True
     
@@ -468,7 +467,7 @@ class PokerTable:
             self._end_hand(winners)
         else:
             # Move to the next betting round
-            self.betting_round = BettingRound(self.betting_round.value + 1)
+            self.check_and_deal_next_round()
             self.current_bet = 0.0
             self.current_min_raise = self.big_blind
             self.current_player_idx = self._get_next_player()
@@ -485,12 +484,15 @@ class PokerTable:
             
         # Get positions of active players
         positions = {p.player_id: p.position for p in active_players}
-        
         # Find current player position
         current_pos = positions.get(self.current_player_idx)
+        
         if current_pos is None:
             # Find the first player after the button
-            sorted_positions = sorted(positions.items(), key=lambda x: x[1])
+            sorted_positions = sorted(positions.items(), key=lambda x: x[0]) # Sort the keys
+            for position in sorted_positions:
+                if position[0] >= self.current_player_idx:
+                    return position[0]  # Return the next highest key
             return sorted_positions[0][0]
             
         # Find the next player by position
@@ -556,3 +558,87 @@ class PokerTable:
                     return False
                     
         return True
+    
+    def deal_community_cards(self, num_cards=None, betting_round=None):
+        """
+        Deal community cards for the specified betting round and add them to the game state.
+        
+        Args:
+            num_cards: Number of cards to deal (default: based on betting round)
+            betting_round: The betting round to deal for (flop, turn, river)
+        
+        Returns:
+            List of newly dealt card strings
+        """
+        # Default to dealing flop if not specified
+        if num_cards is None:
+            num_cards = 3
+        
+        # Deal new cards from the deck
+        new_cards = []
+        for _ in range(num_cards):
+            card = self.deck.deal(1)[0]  # Deal one card from the deck
+            new_cards.append(card)  # Convert Card object to string
+
+        # Update the community cards
+        self.community_cards += new_cards
+        
+        # If this is a specific round, update the betting round in the game state
+        if betting_round is not None:
+            if betting_round == 'FLOP':
+                self.betting_round = BettingRound.FLOP
+            elif betting_round == 'TURN':
+                self.betting_round = BettingRound.TURN
+            elif betting_round == 'RIVER':
+                self.betting_round = BettingRound.RIVER
+
+        return new_cards
+
+    # You might also want to add methods for dealing flop, turn, and river specifically:
+
+    def deal_flop(self):
+        """Deal the flop (3 community cards)."""
+        return self.deal_community_cards(num_cards=3, betting_round="FLOP")
+
+    def deal_turn(self):
+        """Deal the turn (1 community card)."""
+        return self.deal_community_cards(num_cards=1, betting_round="TURN")
+
+    def deal_river(self):
+        """Deal the river (1 community card)."""
+        return self.deal_community_cards(num_cards=1, betting_round="RIVER")
+
+
+    def check_and_deal_next_round(self):
+        """
+        Check if we need to deal community cards for the next betting round.
+        """
+        # Check if we need to deal community cards
+        if self.betting_round.name == "PREFLOP" and len(self.community_cards) == 0:
+            # All players have acted, deal the flop
+            if self._all_players_acted():
+                self.deal_flop()
+                
+        elif self.betting_round.name == "FLOP" and len(self.community_cards) == 3:
+            # All players have acted on the flop, deal the turn
+            if self._all_players_acted():
+                self.deal_turn()
+
+        elif self.betting_round.name == "TURN" and len(self.community_cards) == 4:
+            # All players have acted on the turn, deal the river
+            if self._all_players_acted():
+                self.deal_river()
+        
+    def _all_players_acted(self):
+        """
+        Helper method to check if all active players have acted in the current round.
+        
+        Returns:
+            True if all players have acted, False otherwise
+        """
+        active_players = [i for i, player in self.players.items()
+                         if not player.has_folded and player.is_active and not player.is_all_in]
+        if len(active_players) > 1:
+            return False
+        else:
+            return True
