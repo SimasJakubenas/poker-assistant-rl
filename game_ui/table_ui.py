@@ -127,6 +127,28 @@ class PokerTableUI:
             
         return positions
     
+    def _calculate_button_positions(self) -> List[Tuple[int, int]]:
+        """
+        Calculate the positions of button around the table.
+        
+        Returns:
+            List of (x, y) positions for each players button
+        """
+        positions = []
+        center_x, center_y = self.table_center
+        radius = self.table_radius * 0.8
+        
+        # 6-max table positions
+        angles = [math.pi/2, 5*math.pi/6, 7*math.pi/6, 3*math.pi/2, 11*math.pi/6, math.pi/6]
+        
+        for i, angle in enumerate(angles):
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+            
+            positions.append((int(x), int(y)))
+            
+        return positions
+    
     def start_game(self, n_players: int = 6):
         """
         Start a new poker game.
@@ -386,9 +408,10 @@ class PokerTableUI:
             button_pos = self.game_state[0]["button_pos"]
             seat_positions = self._get_seat_positions()
             if button_pos in seat_positions:
-                btn_x, btn_y = seat_positions[button_pos]
-                btn_x -= 55
-                btn_y += 55
+                button_positions = self._calculate_button_positions()
+                btn_x, btn_y = button_positions[button_pos]
+                # btn_x -= 55
+                # btn_y += 55
                 btn_radius = 30
                 pygame.draw.circle(self.screen, self.WHITE, (btn_x, btn_y), btn_radius)
                 pygame.draw.circle(self.screen, self.BLACK, (btn_x, btn_y), btn_radius - 2, 2)
