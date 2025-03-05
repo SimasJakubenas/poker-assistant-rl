@@ -70,8 +70,8 @@ class PokerTable:
         state = {
             "hand_complete": self.hand_complete,
             "betting_round": self.betting_round.name if self.betting_round else None,
-            "pot": self.pot,
-            "current_bet": self.current_bet,
+            "pot": round(self.pot, 2),
+            "current_bet": round(self.current_bet, 2),
             "button_pos": self.button_pos,
             "current_player": self.current_player_idx,
             "community_cards": [str(card) for card in self.community_cards],
@@ -87,8 +87,8 @@ class PokerTable:
                 "is_active": player.is_active,
                 "has_folded": player.has_folded,
                 "is_all_in": player.is_all_in,
-                "current_bet": player.current_bet,
-                "total_bet_in_hand": player.total_bet_in_hand,
+                "current_bet": round(player.current_bet, 2),
+                "total_bet_in_hand": round(player.total_bet_in_hand, 2),
                 "last_action": str(player.last_action) if player.last_action else None
             }
             
@@ -247,7 +247,7 @@ class PokerTable:
             legal_actions[PokerAction.CHECK] = []
         
         # CALL is legal if there's a bet to call
-        call_amount = self.current_bet - player.current_bet
+        call_amount = round(self.current_bet - player.current_bet, 2)
         if call_amount > 0:
             # If call amount is >= player's stack, it becomes an all-in call
             if call_amount >= player.stack:
@@ -267,12 +267,12 @@ class PokerTable:
                     min_bet_or_raise, player.stack
                 )
         else:  # Current bet exists, so it's a raise
-            min_raise_to = self.current_bet + min_bet_or_raise
-            raise_amount = min_raise_to - player.current_bet
+            min_raise_to = round(self.current_bet + min_bet_or_raise, 2)
+            raise_amount = round(min_raise_to - player.current_bet, 2)
             
             if player.stack >= raise_amount:
                 legal_actions[PokerAction.RAISE] = self._get_bet_sizing_options(
-                    min_raise_to, player.stack + player.current_bet
+                    min_raise_to, round(player.stack + player.current_bet, 2)
                 )
                 
         return legal_actions
@@ -296,12 +296,12 @@ class PokerTable:
         options.append(min_amount)
         
         # 1/2 pot
-        half_pot = max(min_amount, pot_size * 0.5)
+        half_pot = max(min_amount, round(pot_size * 0.5, 2))
         if min_amount <= half_pot <= max_amount:
             options.append(half_pot)
             
         # 2/3 pot
-        two_thirds_pot = max(min_amount, pot_size * 0.67)
+        two_thirds_pot = max(min_amount, round(pot_size * 0.67, 2))
         if min_amount <= two_thirds_pot <= max_amount and abs(two_thirds_pot - half_pot) > 0.5:
             options.append(two_thirds_pot)
             
@@ -366,7 +366,7 @@ class PokerTable:
             self._record_action("CHECK", player_id, 0)
             
         elif action == PokerAction.CALL:
-            call_amount = self.current_bet - player.current_bet
+            call_amount = round(self.current_bet - player.current_bet, 2)
             call_amount = min(call_amount, player.stack)  # In case player can't cover the call
             
             actual_bet = player.bet(call_amount)
@@ -388,7 +388,7 @@ class PokerTable:
             
         elif action == PokerAction.RAISE:
             raise_to = amount
-            actual_raise = raise_to - player.current_bet
+            actual_raise = round(raise_to - player.current_bet, 2)
             
             # Adjust for player's stack
             actual_bet = player.bet(actual_raise)
@@ -397,7 +397,7 @@ class PokerTable:
             # Update current bet and minimum raise
             old_bet = self.current_bet
             self.current_bet = player.current_bet
-            self.current_min_raise = self.current_bet - old_bet
+            self.current_min_raise = round(self.current_bet - old_bet, 2)
             self.last_aggressor = player_id
             
             self._record_action("RAISE", player_id, actual_bet, {"raise_to": player.current_bet})
@@ -405,7 +405,7 @@ class PokerTable:
         elif action == PokerAction.ALL_IN:
             # If the all-in amount is greater than the current bet, it's treated as a raise
             all_in_amount = player.stack
-            is_raise = player.current_bet + all_in_amount > self.current_bet
+            is_raise = round(player.current_bet + all_in_amount, 2) > self.current_bet
             
             actual_bet = player.bet(all_in_amount)
             self.pot += actual_bet
@@ -429,7 +429,7 @@ class PokerTable:
     def _end_hand(self, winners: List[int]):
         """Ends the current hand and distributes the pot to the winners."""
         # Calculate the amount each winner receives
-        amount_per_winner = self.pot / len(winners)
+        amount_per_winner = round(self.pot / len(winners), 2)
         
         for winner_id in winners:
             self.players[winner_id].win_amount(amount_per_winner)
