@@ -436,7 +436,6 @@ class PokerTable:
         
         # Record the winners in the hand history
         self._record_action("WINNER", -1, 0, {"winners": winners, "amount_per_winner": amount_per_winner})
-        
         # Mark the hand as complete
         self.hand_complete = True
     
@@ -579,20 +578,20 @@ class PokerTable:
         new_cards = []
         for _ in range(num_cards):
             card = self.deck.deal(1)[0]  # Deal one card from the deck
-            new_cards.append(str(card))  # Convert Card object to string
+            new_cards.append(card)  # Convert Card object to string
 
         # Update the community cards
         self.community_cards += new_cards
         
         # If this is a specific round, update the betting round in the game state
         if betting_round is not None:
-            if betting_round == 'PREFLOP':
-                self.betting_round = BettingRound.PREFLOP
-            elif betting_round == 'FLOP':
+            if betting_round == 'FLOP':
                 self.betting_round = BettingRound.FLOP
             elif betting_round == 'TURN':
                 self.betting_round = BettingRound.TURN
-        
+            elif betting_round == 'RIVER':
+                self.betting_round = BettingRound.RIVER
+
         return new_cards
 
     # You might also want to add methods for dealing flop, turn, and river specifically:

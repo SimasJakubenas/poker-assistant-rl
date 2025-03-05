@@ -144,7 +144,7 @@ class PokerTableUI:
         self.game_loop()
     
     def game_loop(self):
-        """Main game loop."""
+        """Main game loop. Modified to check for betting round progression."""
         clock = pygame.time.Clock()
         running = True
         
@@ -181,7 +181,7 @@ class PokerTableUI:
             
             # Check if game is over
             if self.env.terminal:
-                # Wait for a moment before starting a new hand
+                # Display the final state for a while
                 pygame.time.wait(3000)
                 self.game_state = self.env.reset()
                 self.current_player = self.env.current_player
@@ -192,7 +192,7 @@ class PokerTableUI:
         sys.exit()
     
     def _execute_ai_action(self):
-        """Execute an action for an AI player."""
+        """Execute an action for an AI player. Modified to check for round progression."""
         if self.current_player is None or self.env.terminal:
             return
             
@@ -273,13 +273,7 @@ class PokerTableUI:
             self.bet_slider_button_rect.centerx = x_pos
     
     def _execute_human_action(self, action: PokerAction, amount: Optional[float] = None):
-        """
-        Execute an action for the human player.
-        
-        Args:
-            action: Poker action to take
-            amount: Bet amount (for BET, RAISE, ALL_IN)
-        """
+        """Execute an action for the human player. Modified to check for round progression."""
         if self.current_player != self.human_player or self.env.terminal:
             return
             
@@ -335,7 +329,7 @@ class PokerTableUI:
             self.game_state, reward, done, _ = self.env.step(target_action_idx)
             self.current_player = self.env.current_player
             self.selected_action = None
-            self.selected_bet_amount = None
+            self.selected_bet_amount = None        
     
     def render(self):
         """Render the game state to the screen."""
@@ -389,8 +383,8 @@ class PokerTableUI:
         """Draw the community cards in the center of the table."""
         if not self.game_state:
             return
-            
-        community_cards = self.game_state[0]["community_cards"]
+
+        community_cards = self.env.table.get_state()['community_cards']
         if not community_cards:
             return
             
@@ -758,7 +752,7 @@ class PokerTableUI:
         pygame.draw.rect(self.screen, self.BLACK, info_rect, 2, 5)
         
         # Draw betting round
-        round_name = self.game_state[0]["betting_round"]
+        round_name = self.env.table.betting_round.name
         round_text = self.medium_font.render(f"Round: {round_name}", True, self.BLACK)
         self.screen.blit(round_text, (20, 20))
         
