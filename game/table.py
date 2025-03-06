@@ -82,6 +82,7 @@ class PokerTable:
         for player_id, player in self.players.items():
             state["players"][player_id] = {
                 "stack": player.stack,
+                "balance": player.balance,
                 "hole_cards": [str(card) for card in player.hole_cards],
                 "position": player.position,
                 "is_active": player.is_active,
@@ -438,6 +439,9 @@ class PokerTable:
         self._record_action("WINNER", -1, 0, {"winners": winners, "amount_per_winner": amount_per_winner})
         # Mark the hand as complete
         self.hand_complete = True
+        
+        for i, player in self.players.items():
+            player.update_balance()
     
     def _advance_game(self):
         """Advances the game to the next player or next betting round."""
