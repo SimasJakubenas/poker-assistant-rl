@@ -803,7 +803,7 @@ class PokerTableUI:
         
         # Display hand result if the hand is complete
         if self.env.terminal and len(self.env.table.hand_history) > 0:
-            self._draw_hand_result()
+            self._draw_hand_result_with_side_pots()
 
     def _draw_hand_result(self):
         """Draw the hand result when the hand is complete."""
@@ -841,3 +841,49 @@ class PokerTableUI:
         # Draw amount won
         amount_text = self.medium_font.render(f"Amount won: ${amount_per_winner:.2f}", True, self.BLACK)
         self.screen.blit(amount_text, (panel_x + panel_width // 2 - amount_text.get_width() // 2, panel_y + 90))
+
+    def _draw_hand_result_with_side_pots(self):
+        """
+        Draw the hand result showing side pots and their winners.
+        
+        Args:
+            pot_results: List of dictionaries with pot amounts and winners
+        """
+        if len(self.env.table.side_pots) == 0:
+            self._draw_hand_result()
+            return
+        import json
+        data = json.dumps(self.env.table.hand_history, indent=4)
+        # print(data)
+        # Draw result panel
+        panel_width = 500
+        panel_height = 90 + len(self.env.table.side_pots) * 60
+        panel_x = self.width // 2 - panel_width // 2
+        panel_y = self.height // 2 - panel_height // 2
+        
+        panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
+        pygame.draw.rect(self.screen, self.LIGHT_GRAY, panel_rect, 0, 10)
+        pygame.draw.rect(self.screen, self.BLACK, panel_rect, 2, 10)
+        
+        # Draw title
+        title_text = self.large_font.render("Hand Complete", True, self.BLACK)
+        self.screen.blit(title_text, (panel_x + panel_width // 2 - title_text.get_width() // 2, panel_y + 20))
+        
+        # Draw each pot result
+        y_offset = 70
+        for i, result in enumerate(self.env.table.side_pots):
+            pot_label = "Main Pot" if i == len(self.env.table.side_pots) - 1 else f"Side Pot {i+1}"
+            pot_text = self.medium_font.render(f"{pot_label}: ${result[0]:.2f}", True, self.BLACK)
+            self.screen.blit(pot_text, (panel_x + 20, panel_y + y_offset))
+            
+            # Draw winners
+            winners_str = ", ".join([f"Player {w}" for w in result[-1]["winners"]])
+            winners_text = self.medium_font.render(f"Winner(s): {winners_str}", True, self.BLACK)
+            self.screen.blit(winners_text, (panel_x + 20, panel_y + y_offset + 25))
+            
+            # Draw amount won per player
+            if result[-1]["winners"]:
+                amount_text = self.small_font.render(f"${result[-1]['amount_per_winner']:.2f} each", True, self.BLACK)
+                self.screen.blit(amount_text, (panel_x + panel_width - amount_text.get_width() - 20, panel_y + y_offset + 25))
+            
+            y_offset += 60
