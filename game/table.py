@@ -221,6 +221,8 @@ class PokerTable:
             action.update(extra_info)
             
         self.hand_history.append(action)
+        
+        return action
     
     def get_legal_actions(self, player_id: int) -> Dict[PokerAction, List[float]]:
         """
@@ -417,7 +419,8 @@ class PokerTable:
                 self.current_min_raise = max(self.big_blind, self.current_bet - old_bet)
                 self.last_aggressor = player_id
                 
-            self._record_action("ALL_IN", player_id, actual_bet, {"raise_to": player.current_bet})
+            self._record_action("ALL_IN_INFO", player_id, all_in_amount,
+                            {"stack_size": player.stack, "total_pot": self.pot})
             
         player.last_action = (action, amount if amount is not None else 0)
         
@@ -466,9 +469,7 @@ class PokerTable:
         """Moves to the next betting round or ends the hand if all rounds are complete."""
         if self.betting_round == BettingRound.RIVER:
             # Showdown and determine the winners
-            player_hands = {p_id: p.hole_cards for p_id, p in self.players.items() if p.is_active and not p.has_folded}
-            winners = PokerHandEvaluator.determine_winners(player_hands, self.community_cards)
-            self._end_hand(winners)
+            self._showdown_with_side_pots()
         else:
             # Move to the next betting round
             self.check_and_deal_next_round()
@@ -646,3 +647,118 @@ class PokerTable:
             return False
         else:
             return True
+    
+    def _calculate_side_pots(self):
+        """
+        Calculates side pots when there are all-in players.
+        
+        Returns:
+            List of tuples (pot_amount, set of eligible_player_ids)
+        """
+        # Reset side pots
+        self.side_pots = []
+        
+        # Get all players who are active (not folded)
+        active_players = [p for p in self.players.values() if not p.has_folded and p.is_active]
+        if not active_players:
+            return []
+            
+        # Sort players by their total bet in the hand
+        sorted_players = sorted(active_players, key=lambda p: p.total_bet_in_hand)
+        
+        # Calculate side pots
+        prev_bet = 0
+        eligible_players = set()
+        
+        for player in sorted_players:
+            current_bet = player.total_bet_in_hand
+            if current_bet > prev_bet:
+                this_split_eligible_players = set()
+                # Calculate side pot for this bet level
+                pot_amount = 0
+                for p in self.players.values():
+                    contribution = min(p.total_bet_in_hand, current_bet) - prev_bet
+
+                    if contribution > 0:
+                        pot_amount += contribution
+                        if not p.has_folded:
+                            this_split_eligible_players.add(p.player_id)
+                    
+                if pot_amount > 0 and this_split_eligible_players:
+                    self.side_pots.append((pot_amount, this_split_eligible_players.copy()))
+                    
+            # Add player to eligible players for higher pots
+            eligible_players.add(player.player_id)
+            prev_bet = current_bet
+         
+        # Add the final main pot with all remaining players
+        remaining_pot = self.pot - sum(amount for amount, _ in self.side_pots)
+        if remaining_pot > 0 and eligible_players:
+            self.side_pots.append((remaining_pot, eligible_players))
+        
+        # Log side pots for debugging
+        for i, (amount, players) in enumerate(self.side_pots):
+            pot_name = "Main Pot" if 0 else f"Side Pot {i+1}"
+            self._record_action("POT_INFO", -1, amount, 
+                            {"pot_name": pot_name, "eligible_players": list(players)})
+        
+        return self.side_pots
+
+    def _showdown_with_side_pots(self):
+        """
+        Performs a showdown with side pots to determine winners and distribute the pot.
+        """
+        # Determine player hands for showdown
+        active_player_hands = {}
+        for player_id, player in self.players.items():
+            if not player.has_folded and player.is_active:
+                active_player_hands[player_id] = player.hole_cards
+        
+        # Calculate side pots if there are all-in players
+        all_in_players = [p for p in self.players.values() if p.is_all_in]
+        if all_in_players:
+            self._calculate_side_pots()
+            
+            # Distribute each side pot to the winner(s)
+            for i, (pot_amount, eligible_players) in enumerate(self.side_pots):
+                # Get only eligible hands (players who can win this pot)
+                eligible_hands = {p_id: active_player_hands[p_id] for p_id in eligible_players
+                                if p_id in active_player_hands}
+                
+                if not eligible_hands:
+                    continue  # Skip if no eligible players for this pot
+                    
+                # Determine winners for this pot
+                winners = PokerHandEvaluator.determine_winners(eligible_hands, self.community_cards)
+                
+                # Split the pot among winners
+                pot_per_winner = pot_amount / len(winners)
+                for winner_id in winners:
+                    self.players[winner_id].win_amount(pot_per_winner)
+                    
+                # Record winner action for this pot
+                pot_name = "Main Pot" if pot_amount == self.side_pots[-1][0] else "Side Pot"
+                action = self._record_action("POT_WINNER", -1, pot_amount, 
+                                {"pot_name": pot_name, "winners": winners, 
+                                "amount_per_winner": pot_per_winner})
+                
+                self.side_pots[i] += (action,)
+                
+        else:
+            # Single pot - standard showdown
+            winners = PokerHandEvaluator.determine_winners(active_player_hands, self.community_cards)
+            pot_per_winner = self.pot / len(winners)
+            
+            for winner_id in winners:
+                self.players[winner_id].win_amount(pot_per_winner)
+                
+            self._record_action("WINNER", -1, self.pot, 
+                            {"winners": winners, "amount_per_winner": pot_per_winner})
+        
+        # Update balance
+        for i, player in self.players.items():
+            player.update_balance()
+        
+        # Mark hand as complete
+        self.hand_complete = True
+    
