@@ -4,6 +4,7 @@ class PokerPlayer:
     def __init__(self, player_id: int, stack: float = 100.0):
         self.player_id = player_id
         self.stack = stack
+        self.balance = 0
         self.hole_cards = []
         self.is_active = True
         self.has_folded = False
@@ -43,3 +44,14 @@ class PokerPlayer:
     def win_amount(self, amount: float):
         """Player wins a specific amount."""
         self.stack += amount
+    
+    def update_balance(self):
+        """Balance get updated at the end of hand"""
+        if self.stack < 100:
+            self.balance = self.balance - (100 - self.stack)
+            self.stack = 100
+        
+        # Stores money to balance when stack gets too large
+        if self.stack > 1500:
+            self.balance = self.balance + self.stack - 100
+            self.stack = 100
