@@ -444,7 +444,8 @@ class PokerTable:
         self.hand_complete = True
         
         for i, player in self.players.items():
-            player.update_balance()
+            if player.player_id not in winners:
+                player.update_balance()
     
     def _advance_game(self):
         """Advances the game to the next player or next betting round."""
