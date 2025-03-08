@@ -466,7 +466,7 @@ class PokerTable:
         active_players = [p for p in self.players.values() if not p.has_folded and p.is_active]
         
         # If only one player remains, they win
-        if len(active_players) == 1:
+        if len(active_players) == 1 and self.hand_complete == False:
             self._end_hand([active_players[0].player_id])
             return
             
