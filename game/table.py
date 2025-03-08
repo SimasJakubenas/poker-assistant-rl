@@ -360,6 +360,8 @@ class PokerTable:
                     raise ValueError(f"Amount {amount} not valid for action {action}. Valid amounts: {valid_amounts}")
                 amount = valid_amount
                 
+        is_raise = False
+              
         # Execute the action
         if action == PokerAction.FOLD:
             player.fold()
@@ -380,7 +382,7 @@ class PokerTable:
         elif action == PokerAction.BET:
             if self.current_bet > 0:
                 raise ValueError("Cannot BET when there's already a bet; use RAISE")
-                
+
             actual_bet = player.bet(amount)
             self.pot += actual_bet
             self.current_bet = actual_bet
@@ -421,6 +423,8 @@ class PokerTable:
                 
             self._record_action("ALL_IN_INFO", player_id, all_in_amount,
                             {"stack_size": player.stack, "total_pot": self.pot})
+        
+        self._change_active_play_status(action.name, is_raise, player, player_id)
             
         player.last_action = (action, amount if amount is not None else 0)
         
@@ -429,6 +433,15 @@ class PokerTable:
         
         # Return updated state
         return self.get_state()
+    
+    def _change_active_play_status(self, action_name: str, is_raise: bool, player: PokerPlayer, player_id: int):
+        """Change status of all players that are still in the hand once a bet is made"""
+        if action_name in ['CHECK', 'CALL'] or not is_raise:
+            player.is_active == False
+        else:
+            active_players = [p.player_id for p in self.players.values() if not p.is_all_in and not p.has_folded and p.player_id != player_id]
+            for active_player in active_players:
+                self.players[active_player].is_active = True
 
     def _end_hand(self, winners: List[int]):
         """Ends the current hand and distributes the pot to the winners."""
@@ -487,7 +500,11 @@ class PokerTable:
                          if not p.has_folded and p.is_active and not p.is_all_in]
         if not active_players:
             return None
-            
+        
+        rest_of_active_players_stacks = [p.stack for p in self.players.values() if not p.player_id == self.last_aggressor and p.is_active]
+        if set(rest_of_active_players_stacks) == set([0.0]):
+            return None
+        
         # Get positions of active players
         positions = {p.player_id: p.position for p in active_players}
         # Find current player position
