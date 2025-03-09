@@ -206,8 +206,12 @@ class PokerTable:
         self.players[bb_player_id].last_action = (PokerAction.BET, bb_amount)
         self._record_action("BIG_BLIND", bb_player_id, bb_amount)
     
-    def _record_action(self, action_type: str, player_id: int, amount: float, extra_info: Dict = None):
+    def _record_action(self, action_type: str, player_id: int, amount: float, extra_info: Dict = None, is_raise: int = False):
         """Records an action in the hand history."""
+        # Change player status after action
+        if player_id != -1 and action_type not in ['SMALL_BLIND', 'BIG_BLIND']:
+            self._change_active_play_status(action_type, player_id, is_raise)
+        
         action = {
             "type": action_type,
             "player": player_id,
@@ -359,9 +363,7 @@ class PokerTable:
                 if valid_amount is None:
                     raise ValueError(f"Amount {amount} not valid for action {action}. Valid amounts: {valid_amounts}")
                 amount = valid_amount
-                
-        is_raise = False
-              
+
         # Execute the action
         if action == PokerAction.FOLD:
             player.fold()
@@ -422,10 +424,8 @@ class PokerTable:
                 self.last_aggressor = player_id
                 
             self._record_action("ALL_IN_INFO", player_id, all_in_amount,
-                            {"stack_size": player.stack, "total_pot": self.pot})
-        
-        self._change_active_play_status(action.name, is_raise, player, player_id)
-            
+                            {"stack_size": player.stack, "total_pot": self.pot}, is_raise)
+
         player.last_action = (action, amount if amount is not None else 0)
         
         # Move to next player or next betting round
@@ -434,11 +434,10 @@ class PokerTable:
         # Return updated state
         return self.get_state()
     
-    def _change_active_play_status(self, action_name: str, is_raise: bool, player: PokerPlayer, player_id: int):
+    def _change_active_play_status(self, action_name: str, player_id: int, is_raise: int):
         """Change status of all players that are still in the hand once a bet is made"""
-        if action_name in ['CHECK', 'CALL'] or not is_raise:
-            player.is_active == False
-        else:
+        self.players[player_id].is_active = False
+        if action_name in ['BET', 'RAISE'] or is_raise:
             active_players = [p.player_id for p in self.players.values() if not p.is_all_in and not p.has_folded and p.player_id != player_id]
             for active_player in active_players:
                 self.players[active_player].is_active = True
@@ -463,7 +462,7 @@ class PokerTable:
     def _advance_game(self):
         """Advances the game to the next player or next betting round."""
         # Check if hand is complete
-        active_players = [p for p in self.players.values() if not p.has_folded and p.is_active]
+        active_players = [p for p in self.players.values() if not p.has_folded]
         
         # If only one player remains, they win
         if len(active_players) == 1 and self.hand_complete == False:
@@ -481,6 +480,7 @@ class PokerTable:
     
     def _move_to_next_betting_round(self):
         """Moves to the next betting round or ends the hand if all rounds are complete."""
+        self.restore_player_status_for_new_round()
         if self.betting_round == BettingRound.RIVER:
             # Showdown and determine the winners
             self._showdown_with_side_pots()
@@ -492,18 +492,19 @@ class PokerTable:
             self.current_player_idx = self._get_next_player()
             self._record_action("NEW_ROUND", -1, 0, {"betting_round": self.betting_round.name})
 
-    
+    def restore_player_status_for_new_round(self):
+        remaining_players  = [p for p in self.players.values() if not p.is_all_in and not p.has_folded]
+        if len(remaining_players) > 1:
+            for player in remaining_players:
+                self.players[player.player_id].is_active = True
+        
     def _get_next_player(self) -> Optional[int]:
         """Gets the ID of the next player to act."""
         # Get list of active players
-        active_players = [p for p in self.players.values() 
-                         if not p.has_folded and p.is_active and not p.is_all_in]
+        active_players = [p for p in self.players.values() if p.is_active]
         if not active_players:
             return None
         
-        rest_of_active_players_stacks = [p.stack for p in self.players.values() if not p.player_id == self.last_aggressor and p.is_active]
-        if set(rest_of_active_players_stacks) == set([0.0]):
-            return None
         
         # Get positions of active players
         positions = {p.player_id: p.position for p in active_players}
@@ -533,8 +534,7 @@ class PokerTable:
     
     def _is_betting_round_complete(self) -> bool:
         """Checks if the current betting round is complete."""
-        active_players = [p for p in self.players.values() 
-                         if not p.has_folded and p.is_active and not p.is_all_in]
+        active_players = [p for p in self.players.values() if p.is_active]
         if not active_players:
             return True
             
@@ -638,19 +638,13 @@ class PokerTable:
         """
         # Check if we need to deal community cards
         if self.betting_round.name == "PREFLOP" and len(self.community_cards) == 0:
-            # All players have acted, deal the flop
-            if self._all_players_acted():
-                self.deal_flop()
+            self.deal_flop()
                 
         elif self.betting_round.name == "FLOP" and len(self.community_cards) == 3:
-            # All players have acted on the flop, deal the turn
-            if self._all_players_acted():
-                self.deal_turn()
+            self.deal_turn()
 
         elif self.betting_round.name == "TURN" and len(self.community_cards) == 4:
-            # All players have acted on the turn, deal the river
-            if self._all_players_acted():
-                self.deal_river()
+            self.deal_river()
         
     def _all_players_acted(self):
         """
@@ -659,9 +653,8 @@ class PokerTable:
         Returns:
             True if all players have acted, False otherwise
         """
-        active_players = [i for i, player in self.players.items()
-                         if not player.has_folded and player.is_active and not player.is_all_in]
-        if len(active_players) > 1:
+        active_players = [i for i, player in self.players.items()if  player.is_active]
+        if len(active_players) > 0:
             return False
         else:
             return True
@@ -677,7 +670,7 @@ class PokerTable:
         self.side_pots = []
         
         # Get all players who are active (not folded)
-        active_players = [p for p in self.players.values() if not p.has_folded and p.is_active]
+        active_players = [p for p in self.players.values() if not p.has_folded]
         if not active_players:
             return []
             
@@ -729,7 +722,7 @@ class PokerTable:
         # Determine player hands for showdown
         active_player_hands = {}
         for player_id, player in self.players.items():
-            if not player.has_folded and player.is_active:
+            if not player.has_folded:
                 active_player_hands[player_id] = player.hole_cards
         
         # Calculate side pots if there are all-in players
