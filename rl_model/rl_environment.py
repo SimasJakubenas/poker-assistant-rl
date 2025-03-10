@@ -93,18 +93,19 @@ class PokerEnv:
             immediate_reward = -amount
             
         # Check if hand is complete
-        if self.table.hand_complete:
+        if self.current_player is None or self.table.hand_complete:
             self.terminal = True
-            # Calculate final rewards (based on stack changes)
-            for i in range(self.n_players):
-                # Final reward is the stack change
-                self.rewards[i] = self.table.players[i].stack - self.table.initial_stack
         else:
             # Immediate reward for the action taken
             self.rewards[prev_player] = immediate_reward
-        
             
         return self._get_observation(), self.rewards[prev_player], self.terminal, {}
+    
+    def calculate_final_rewards(self):
+        # Calculate final rewards (based on stack changes)
+        for i in range(self.n_players):
+            # Final reward is the stack change
+            self.rewards[i] = self.table.players[i].stack - self.table.initial_stack
     
     def _get_observation(self):
         """

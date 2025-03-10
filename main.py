@@ -19,7 +19,7 @@ except ImportError:
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Poker RL Environment")
-    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="ui",
+    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="train",
                       help="Run mode: ui, train, or evaluate")
     parser.add_argument("--n_players", type=int, default=6,
                       help="Number of players (2-6)")
@@ -72,7 +72,7 @@ def train(args):
     agents = []
     for i in range(args.n_players):
         if i == 0:  # DQN agent for first player
-            agent = DQNAgent(state_size=20, action_size=10, player_id=i)
+            agent = DQNAgent(state_size=13, action_size=10, player_id=i)
         else:  # Random agents for other players
             agent = RandomAgent(i)
         agents.append(agent)
@@ -84,38 +84,44 @@ def train(args):
         states = {}
         actions = {}
         
-        while not done:
-            current_player = env.current_player
-            
-            if current_player == 0:  # DQN agent's turn
-                # Get state
-                player_obs = obs[current_player]
-                if "legal_actions" in player_obs:
-                    state = agents[0]._process_state(player_obs)
-                    
-                    # Choose action
-                    action = agents[0].act(obs)
-                    
-                    # Remember state and action
-                    states[current_player] = state
-                    actions[current_player] = action
-                    
-                    # Take step
-                    next_obs, reward, done, _ = env.step(action)
-                    
-                    # Remember experience
-                    if done:
-                        agents[0].remember(state, action, reward, state, done)
-                    else:
+        while True:
+            if env.current_player != None and not done:
+                current_player = env.current_player
+                
+                if current_player == 0:  # DQN agent's turn
+                    # Get state
+                    player_obs = obs[current_player]
+                    if "legal_actions" in player_obs:
+                        state = agents[0]._process_state(player_obs)
+                        
+                        # Choose action
+                        action = agents[0].act(obs)
+                        
+                        # Remember state and action
+                        states[current_player] = state
+                        actions[current_player] = action
+                        
+                        # Take step
+                        next_obs, reward, done, _ = env.step(action)
+                        
+                        # Remember experience
                         next_state = agents[0]._process_state(next_obs[current_player])
                         agents[0].remember(state, action, reward, next_state, done)
+                        
+                        obs = next_obs
+                else:  # Random agent's turn
+                    action = agents[current_player].act(obs)
                     
-                    obs = next_obs
-            else:  # Random agent's turn
-                action = agents[current_player].act(obs)
-                
-                if action is not None:
-                    obs, _, done, _ = env.step(action)
+                    if action is not None:
+                        obs, _, done, _ = env.step(action)
+            
+            else:
+                env.table._advance_game()
+                if env.table.hand_complete == True:
+                    env.calculate_final_rewards()
+                    agents[0].remember(state, action, reward, state, done)
+                    env.reset()
+                    break
         
         # Train the model
         if episode % 10 == 0:
@@ -151,7 +157,7 @@ def evaluate(args):
     agents = []
     for i in range(args.n_players):
         if i == 0:  # Load trained DQN agent
-            agent = DQNAgent(state_size=20, action_size=10, player_id=i)
+            agent = DQNAgent(state_size=13, action_size=10, player_id=i)
             if os.path.exists(args.save_path):
                 agent.model.load_state_dict(torch.load(args.save_path))
                 agent.epsilon = 0.0  # No exploration during evaluation

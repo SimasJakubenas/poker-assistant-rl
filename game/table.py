@@ -454,10 +454,7 @@ class PokerTable:
         self._record_action("WINNER", -1, 0, {"winners": winners, "amount_per_winner": amount_per_winner})
         # Mark the hand as complete
         self.hand_complete = True
-        
-        for i, player in self.players.items():
-            if player.player_id not in winners:
-                player.update_balance()
+        self.current_player_idx = None
     
     def _advance_game(self):
         """Advances the game to the next player or next betting round."""
@@ -765,10 +762,6 @@ class PokerTable:
                 
             self._record_action("WINNER", -1, self.pot, 
                             {"winners": winners, "amount_per_winner": pot_per_winner})
-        
-        # Update balance
-        for i, player in self.players.items():
-            player.update_balance()
         
         # Mark hand as complete
         self.hand_complete = True

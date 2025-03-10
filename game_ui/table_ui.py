@@ -203,21 +203,17 @@ class PokerTableUI:
             
             all_players_acted = self.env.table._all_players_acted()
             
-            if all_players_acted == True:
-                pygame.time.wait(1500)
-                self.env.table._advance_game()
-            
-            if self.env.table.hand_complete == True:
-                self.env.terminal = True
-            
             # Render the game
             self.render()
             
             # Cap at 60 FPS
             clock.tick(60)
             
-            # Check if game is over
-            if self.env.terminal:
+            if all_players_acted == True:
+                pygame.time.wait(1500)
+                self.env.table._advance_game()
+            
+            if self.env.table.hand_complete == True:
                 # Display the final state for a while
                 pygame.time.wait(3000)
                 self.game_state = self.env.reset()
@@ -230,7 +226,7 @@ class PokerTableUI:
     
     def _execute_ai_action(self):
         """Execute an action for an AI player. Modified to check for round progression."""
-        if self.current_player is None or self.env.terminal:
+        if self.current_player is None or self.env.table.hand_complete:
             return
             
         agent = self.agents[self.current_player]
@@ -311,7 +307,7 @@ class PokerTableUI:
     
     def _execute_human_action(self, action: PokerAction, amount: Optional[float] = None):
         """Execute an action for the human player. Modified to check for round progression."""
-        if self.current_player != self.human_player or self.env.terminal:
+        if self.current_player != self.human_player or self.env.table.hand_complete:
             return
             
         # Get legal actions
@@ -802,7 +798,7 @@ class PokerTableUI:
             self.screen.blit(player_text, (20, 50))
         
         # Display hand result if the hand is complete
-        if self.env.terminal and len(self.env.table.hand_history) > 0:
+        if self.env.table.hand_complete and len(self.env.table.hand_history) > 0:
             self._draw_hand_result_with_side_pots()
 
     def _draw_hand_result(self):

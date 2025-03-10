@@ -23,6 +23,7 @@ class PokerPlayer:
         self.total_bet_in_hand = 0.0
         self.is_all_in = False
         self.last_action = None
+        self.update_balance()
     
     def bet(self, amount: float) -> float:
         """Player bets a specific amount and returns the actual amount bet."""
