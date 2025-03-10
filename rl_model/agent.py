@@ -73,6 +73,10 @@ if has_torch:
                     
                     # Filter illegal actions
                     legal_indices = list(range(min(len(player_obs["legal_actions"]), self.action_size)))
+                    
+                    if not legal_indices:
+                        # No legal actions available
+                        return None
                     legal_q_values = q_values[0][legal_indices]
                     
                     return legal_indices[torch.argmax(legal_q_values).item()]
@@ -86,7 +90,7 @@ if has_torch:
             state = []
             
             # Player info
-            player_info = observation["players"][str(self.player_id)]
+            player_info = observation["players"][self.player_id]
             state.append(player_info["stack"] / 100.0)  # Normalize
             state.append(1.0 if player_info["is_active"] else 0.0)
             state.append(1.0 if player_info["has_folded"] else 0.0)
