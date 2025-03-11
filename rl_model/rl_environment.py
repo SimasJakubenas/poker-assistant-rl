@@ -63,7 +63,7 @@ class PokerEnv:
         Returns:
             Tuple of (next_state, reward, done, info)
         """
-        self.render()
+        # self.render()
         if self.terminal:
             return self._get_observation(), 0.0, True, {"info": "Hand already complete"}
             
@@ -99,13 +99,15 @@ class PokerEnv:
             # Immediate reward for the action taken
             self.rewards[prev_player] = immediate_reward
             
-        return self._get_observation(), self.rewards[prev_player], self.terminal, {}
+        return self._get_observation(), self.rewards[prev_player], self.terminal, prev_player
     
-    def calculate_final_rewards(self):
+    def calculate_final_rewards(self, prev_player):
         # Calculate final rewards (based on stack changes)
         for i in range(self.n_players):
             # Final reward is the stack change
             self.rewards[i] = self.table.players[i].stack - self.table.initial_stack
+            
+        return self.rewards[prev_player]
     
     def _get_observation(self):
         """

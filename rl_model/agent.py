@@ -1,4 +1,7 @@
+import numpy as np
 import random
+import os
+from collections import deque
 
 # For reinforcement learning
 try:
@@ -20,7 +23,7 @@ if has_torch:
             self.state_size = state_size
             self.action_size = action_size
             self.player_id = player_id
-            self.memory = []
+            self.memory = deque(maxlen=10000)
             self.gamma = 0.95  # Discount factor
             self.epsilon = 1.0  # Exploration rate
             self.epsilon_min = 0.1
@@ -129,12 +132,15 @@ if has_torch:
             # Sample batch from memory
             batch = random.sample(self.memory, batch_size)
             
+            states = []
+            targets = []
+            
             self.model.train()
             for state, action, reward, next_state, done in batch:
                 state_tensor = torch.FloatTensor(state).unsqueeze(0)
                 next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
                 
-                # Compute target Q-value
+                # Calculate target Q-value
                 with torch.no_grad():
                     target = self.model(state_tensor).data.clone()
                     if done:
@@ -143,17 +149,38 @@ if has_torch:
                         next_q = self.target_model(next_state_tensor).data
                         target[0][action] = reward + self.gamma * torch.max(next_q)
                 
-                # Compute current Q-value
-                current = self.model(state_tensor)
-                
-                # Compute loss
-                loss = F.mse_loss(current, target)
-                
-                # Backpropagation
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-                
+                states.append(state)
+                targets.append(target.squeeze().numpy())
+            
+            # Convert to tensors and train
+            states_tensor = torch.FloatTensor(np.array(states))
+            targets_tensor = torch.FloatTensor(np.array(targets))
+            
+            # Compute loss and update weights
+            self.optimizer.zero_grad()
+            outputs = self.model(states_tensor)
+            loss = F.mse_loss(outputs, targets_tensor)
+            loss.backward()
+            self.optimizer.step()
+            
             # Decay epsilon
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
+        
+        def save(self, filepath):
+            """Save model to file."""
+            torch.save({
+                'model_state_dict': self.model.state_dict(),
+                'target_model_state_dict': self.target_model.state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'epsilon': self.epsilon
+            }, filepath)
+            
+        def load(self, filepath):
+            """Load model from file."""
+            if os.path.exists(filepath):
+                checkpoint = torch.load(filepath)
+                self.model.load_state_dict(checkpoint['model_state_dict'])
+                self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                self.epsilon = checkpoint['epsilon']
