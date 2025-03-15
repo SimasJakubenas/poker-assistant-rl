@@ -403,11 +403,11 @@ class PokerTable:
             
             # Update current bet and minimum raise
             old_bet = self.current_bet
-            self.current_bet = player.current_bet
+            self.current_bet = raise_to
             self.current_min_raise = round(self.current_bet - old_bet, 2)
             self.last_aggressor = player_id
             
-            self._record_action("RAISE", player_id, actual_bet, {"raise_to": player.current_bet})
+            self._record_action("RAISE", player_id, actual_bet, {"raise_to": self.current_bet})
             
         elif action == PokerAction.ALL_IN:
             # If the all-in amount is greater than the current bet, it's treated as a raise
@@ -458,26 +458,31 @@ class PokerTable:
     
     def _advance_game(self):
         """Advances the game to the next player or next betting round."""
-        # Check if hand is complete
-        active_players = [p for p in self.players.values() if not p.has_folded]
-        
-        # If only one player remains, they win
-        if len(active_players) == 1 and self.hand_complete == False:
-            self._end_hand([active_players[0].player_id])
-            return
+        if self.hand_complete == False:
+            # Check if hand is complete
+            active_players = [p for p in self.players.values() if not p.has_folded]
             
-        # Find next player to act
-        next_player = self._get_next_player()
-        
-        # If next player is None or betting round is complete, move to next betting round
-        if next_player is None or self._is_betting_round_complete():
-            self._move_to_next_betting_round()
-        else:
-            self.current_player_idx = next_player
+            # If only one player remains, they win
+            if len(active_players) == 1 and self.hand_complete == False:
+                self._end_hand([active_players[0].player_id])
+                return
+                
+            # Find next player to act
+            next_player = self._get_next_player()
+            
+            # If next player is None or betting round is complete, move to next betting round
+            if next_player is None or self._is_betting_round_complete():
+                self._move_to_next_betting_round()
+            else:
+                self.current_player_idx = next_player
     
     def _move_to_next_betting_round(self):
         """Moves to the next betting round or ends the hand if all rounds are complete."""
         self.restore_player_status_for_new_round()
+        # Reset players current bet for new round
+        for player in self.players:
+            self.players[player].current_bet = 0
+            
         if self.betting_round == BettingRound.RIVER:
             # Showdown and determine the winners
             self._showdown_with_side_pots()

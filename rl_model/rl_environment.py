@@ -73,7 +73,7 @@ class PokerEnv:
         
         if action_idx >= len(action_mapping):
             # Invalid action, return current state with a penalty
-            return self._get_observation(), -1.0, False, {"info": "Invalid action"}
+            return self._get_observation(), 1.0, False, {"info": "Invalid action"}
             
         action, amount = action_mapping[action_idx]
         
@@ -105,7 +105,7 @@ class PokerEnv:
         # Calculate final rewards (based on stack changes)
         for i in range(self.n_players):
             # Final reward is the stack change
-            self.rewards[i] = self.table.players[i].stack - self.table.initial_stack
+            self.rewards[i] = self.table.players[i].stack - self.table.players[i].starting_stack
             
         return self.rewards[prev_player]
     
