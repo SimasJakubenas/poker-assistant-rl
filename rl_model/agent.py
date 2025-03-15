@@ -115,7 +115,30 @@ if has_torch:
             round_idx = round_map.get(betting_round, 0)
             for i in range(5):
                 state.append(1.0 if round_idx == i else 0.0)
-                
+            
+            # Player position
+            position_map = {'BTN': 0, 'SB': 1, 'BB': 2, 'UTG': 3, 'MP': 4, 'CO': 5}
+            position = position_map.get(player_info.get('position'), 0) / 5.0  # Normalize
+            state.append(position)
+
+            # Pot size relative to player stack
+            pot_to_stack = observation['pot'] / max(1.0, player_info.get('stack', 1.0))
+            pot_to_stack = min(3.0, pot_to_stack) / 3.0  # Cap at 3x stack and normalize
+            state.append(pot_to_stack)
+
+            # Current bet relative to pot
+            if observation['pot'] > 0:
+                bet_to_pot = observation['current_bet'] / observation['pot']
+                bet_to_pot = min(2.0, bet_to_pot) / 2.0  # Cap at 2x pot and normalize
+            else:
+                bet_to_pot = 0.0
+            state.append(bet_to_pot)
+
+            # Number of active players
+            active_players = sum(1 for p in observation['players'].values() 
+                            if p.get('is_all_in', False) and not p.get('has_folded', False))
+            active_ratio = active_players / 6.0  # Normalize by max players
+            state.append(active_ratio)
             # Add additional features as needed
             
             return state
@@ -167,13 +190,14 @@ if has_torch:
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
         
-        def save(self, filepath):
+        def save(self, filepath, player_total):
             """Save model to file."""
             torch.save({
                 'model_state_dict': self.model.state_dict(),
                 'target_model_state_dict': self.target_model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
-                'epsilon': self.epsilon
+                'epsilon': self.epsilon,
+                'total': player_total
             }, filepath)
             
         def load(self, filepath):

@@ -4,6 +4,7 @@ class PokerPlayer:
     def __init__(self, player_id: int, stack: float = 100.0):
         self.player_id = player_id
         self.stack = stack
+        self.starting_stack = self.stack
         self.balance = 0
         self.hole_cards = []
         self.is_active = True
@@ -24,6 +25,7 @@ class PokerPlayer:
         self.is_all_in = False
         self.last_action = None
         self.update_balance()
+        self.starting_stack = self.stack
     
     def bet(self, amount: float) -> float:
         """Player bets a specific amount and returns the actual amount bet."""
