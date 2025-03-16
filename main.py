@@ -1,7 +1,7 @@
 import argparse
 from running_modes.ui import run_ui
 from running_modes.train import train
-from running_modes.evealuate import evaluate
+from running_modes.evaluate import evaluate
 
 try:
     import torch
@@ -33,7 +33,7 @@ def parse_args():
                           help="Number of episodes to train")
         parser.add_argument("--batch_size", type=int, default=32,
                           help="Batch size for training")
-        parser.add_argument("--target_update", type=int, default=10,
+        parser.add_argument("--target_update", type=int, default=100,
                           help="Episodes between target network updates")
         parser.add_argument("--save_path", type=str, default="outputs/models/rl",
                           help="Path to save the trained model")

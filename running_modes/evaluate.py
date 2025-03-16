@@ -29,7 +29,7 @@ def evaluate(args):
     for i in range(args.n_players):
         agent = DQNAgent(state_size=16, action_size=10, player_id=i)
         if os.path.exists(args.save_path):
-            load_path = os.path.join(args.save_path, f"final/dqn_player_{i}_final.pt")
+            load_path = os.path.join(args.save_path, f"v01/final/dqn_player_{i}_final.pt")
             agent.load(load_path)
             agent.epsilon = 0.0  # No exploration during evaluation
         else:
@@ -39,26 +39,33 @@ def evaluate(args):
     
     # Evaluation loop
     total_rewards = [0.0 for _ in range(len(agents))]
-    num_episodes = 100
+    num_episodes = 1000
     
     for episode in range(num_episodes):
         obs = env.reset()
         done = False
         
-        while not done:
-            current_player = env.current_player
-            action = agents[current_player].act(obs)
-            
-            if action is not None:
-                obs, reward, done, _ = env.step(action)
+        while True:
+            if env.current_player != None and not done:
+                current_player = env.current_player
+                action = agents[current_player].act(obs)
                 
-                # Save reward for the current player
-                if not done:
-                    total_rewards[current_player] += reward
-        
-        # Add final rewards at the end of the hand
-        for player_id in range(len(agents)):
-            total_rewards[player_id] += env.rewards[player_id]
+                if action is not None:
+                    obs, reward, done, prev_player = env.step(action)
+                    
+                    # Save reward for the current player
+                    # if not done:
+                    #     total_rewards[current_player] += reward
+            else:
+                # Add final rewards at the end of the hand
+                env.table._advance_game()
+                if env.table.hand_complete == True:
+                    env.calculate_final_rewards(prev_player)
+
+                    for player_id in range(len(agents)):
+                        total_rewards[player_id] += env.rewards[player_id]
+                    
+                    break
         
         if episode % 10 == 0:
             print(f"Episode {episode}/{num_episodes}")
