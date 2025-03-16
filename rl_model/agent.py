@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import os
-from collections import deque
+from collections import deque, namedtuple
 
 # For reinforcement learning
 try:
@@ -14,6 +14,9 @@ except ImportError:
     has_torch = False
     print("PyTorch not found. RL training will not be available.")
 
+# Define a Hand object to store complete hand sequences
+Hand = namedtuple('Hand', ['states', 'actions', 'rewards', 'next_states', 'dones', 'player_id'])
+
 # Example RL agent if PyTorch is available
 if has_torch:
     class DQNAgent:
@@ -23,7 +26,7 @@ if has_torch:
             self.state_size = state_size
             self.action_size = action_size
             self.player_id = player_id
-            self.memory = deque(maxlen=10000)
+            self.hand_memory = deque(maxlen=1000)
             self.gamma = 0.95  # Discount factor
             self.epsilon = 1.0  # Exploration rate
             self.epsilon_min = 0.1
@@ -32,6 +35,11 @@ if has_torch:
             self.model = self._build_model()
             self.target_model = self._build_model()
             self.update_target_model()
+            
+            # Current hand being played
+            self.current_hand = None
+            self.reset_current_hand()
+            self.total = 0.0
             
         def _build_model(self):
             """Build a neural network model."""
@@ -44,7 +52,17 @@ if has_torch:
             )
             self.optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
             return model
-            
+        
+        def reset_current_hand(self):
+            """Reset the current hand being collected."""
+            self.current_hand = {
+                'states': [],
+                'actions': [],
+                'rewards': [],
+                'next_states': [],
+                'dones': []
+            }
+        
         def update_target_model(self):
             """Update target model to match the main model."""
             self.target_model.load_state_dict(self.model.state_dict())
@@ -83,7 +101,7 @@ if has_torch:
                     legal_q_values = q_values[0][legal_indices]
                     
                     return legal_indices[torch.argmax(legal_q_values).item()]
-                    
+               
         def _process_state(self, observation):
             """
             Process the observation into a state vector.
@@ -110,10 +128,10 @@ if has_torch:
             state.append(observation["current_bet"] / 100.0)  # Normalize
             
             # Betting round
-            round_map = {"PREFLOP": 0, "FLOP": 1, "TURN": 2, "RIVER": 3, None: 4}
+            round_map = {"PREFLOP": 0, "FLOP": 1, "TURN": 2, "RIVER": 3}
             betting_round = observation["betting_round"]
             round_idx = round_map.get(betting_round, 0)
-            for i in range(5):
+            for i in range(4):
                 state.append(1.0 if round_idx == i else 0.0)
             
             # Player position
@@ -143,50 +161,83 @@ if has_torch:
             
             return state
             
-        def remember(self, state, action, reward, next_state, done):
-            """Store experience in memory."""
-            self.memory.append((state, action, reward, next_state, done))
-            
-        def replay(self, batch_size=32):
-            """Train the model with experiences from memory."""
-            if len(self.memory) < batch_size:
+        def remember_action(self, state, action, reward, next_state, done):
+            """Store an action from the current hand."""
+            self.current_hand['states'].append(state)
+            self.current_hand['actions'].append(action)
+            self.current_hand['rewards'].append(reward)
+            self.current_hand['next_states'].append(next_state)
+            self.current_hand['dones'].append(done)
+        
+        def complete_hand(self, final_reward):
+            """Complete the current hand and store it in memory."""
+            if not self.current_hand['states']:
+                # No actions were taken by this agent in this hand
+                self.reset_current_hand()
                 return
-                
-            # Sample batch from memory
-            batch = random.sample(self.memory, batch_size)
             
-            states = []
-            targets = []
+            # Replace the last reward with the final hand outcome
+            if self.current_hand['rewards']:
+                self.current_hand['rewards'][-1] = final_reward
             
+            # Create a Hand object and add to memory
+            hand = Hand(
+                states=self.current_hand['states'],
+                actions=self.current_hand['actions'],
+                rewards=self.current_hand['rewards'],
+                next_states=self.current_hand['next_states'],
+                dones=self.current_hand['dones'],
+                player_id=self.player_id
+            )
+            self.hand_memory.append(hand)
+            
+            # Reset for the next hand
+            self.reset_current_hand()
+        
+        def replay(self, batch_size=4):
+            """Train the model with hand-level experience replay."""
+            if len(self.hand_memory) < batch_size:
+                return
+            
+            # Sample a batch of hands
+            hands = random.sample(self.hand_memory, batch_size)
+            
+            # Process each hand
+            for hand in hands:
+                # Calculate returns with Monte Carlo (using the actual final outcome)
+                self._train_on_hand(hand)
+         
+        def _train_on_hand(self, hand):
+            """Train on a single complete hand."""
             self.model.train()
-            for state, action, reward, next_state, done in batch:
+            
+            # Get the final reward of the hand (typically the stack change)
+            final_reward = hand.rewards[-1]
+            
+            # Process all state-action pairs in the hand
+            for i in range(len(hand.states)):
+                state = hand.states[i]
+                action = hand.actions[i]
+                
+                # Convert state to tensor
                 state_tensor = torch.FloatTensor(state).unsqueeze(0)
-                next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
                 
-                # Calculate target Q-value
-                with torch.no_grad():
-                    target = self.model(state_tensor).data.clone()
-                    if done:
-                        target[0][action] = reward
-                    else:
-                        next_q = self.target_model(next_state_tensor).data
-                        target[0][action] = reward + self.gamma * torch.max(next_q)
+                # Get current Q-values
+                q_values = self.model(state_tensor)
                 
-                states.append(state)
-                targets.append(target.squeeze().numpy())
+                # Create target by copying predictions
+                target = q_values.clone().detach()
+                
+                # Update Q-value for the taken action
+                target[0, action] = final_reward
+                
+                # Compute loss and update weights
+                self.optimizer.zero_grad()
+                loss = nn.MSELoss()(q_values, target)
+                loss.backward()
+                self.optimizer.step()
             
-            # Convert to tensors and train
-            states_tensor = torch.FloatTensor(np.array(states))
-            targets_tensor = torch.FloatTensor(np.array(targets))
-            
-            # Compute loss and update weights
-            self.optimizer.zero_grad()
-            outputs = self.model(states_tensor)
-            loss = F.mse_loss(outputs, targets_tensor)
-            loss.backward()
-            self.optimizer.step()
-            
-            # Decay epsilon
+            # Decay epsilon after training on a hand
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
         
@@ -208,3 +259,4 @@ if has_torch:
                 self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
                 self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 self.epsilon = checkpoint['epsilon']
+                self.total = checkpoint['total']

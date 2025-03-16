@@ -19,7 +19,7 @@ except ImportError:
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Poker RL Environment")
-    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="train",
+    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="evaluate",
                       help="Run mode: ui, train, or evaluate")
     parser.add_argument("--n_players", type=int, default=6,
                       help="Number of players (2-6)")
@@ -34,7 +34,7 @@ def parse_args():
     
     # Training parameters
     if has_torch:
-        parser.add_argument("--episodes", type=int, default=1000000,
+        parser.add_argument("--episodes", type=int, default=100000,
                           help="Number of episodes to train")
         parser.add_argument("--batch_size", type=int, default=32,
                           help="Batch size for training")
@@ -42,7 +42,7 @@ def parse_args():
                           help="Episodes between target network updates")
         parser.add_argument("--save_path", type=str, default="outputs/models/rl",
                           help="Path to save the trained model")
-        parser.add_argument("--save_freq", type=int, default=10000,
+        parser.add_argument("--save_freq", type=int, default=1000,
                           help="Path to save the trained model")
     
     return parser.parse_args()
@@ -70,7 +70,7 @@ def load_pretrained_agent_for_rl(state_size, action_size, player_id):
             agent.target_model.load_state_dict(checkpoint['target_model_state_dict'])
             agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             agent.epsilon = checkpoint['epsilon']
-            agent.state = checkpoint['state']
+            agent.total = checkpoint['total']
             # Optionally load epsilon if saved
             if 'epsilon' in checkpoint:
                 agent.epsilon = checkpoint['epsilon']
@@ -115,7 +115,7 @@ def train(args):
                  big_blind=args.big_blind, 
                  initial_stack=args.initial_stack)
     
-     # Create directory for saving models
+    # Create directory for saving models
     for player in range(args.n_players):
         partial_path = os.path.join(args.save_path, f"player_{player}")
         os.makedirs(partial_path, exist_ok=True)
@@ -124,7 +124,7 @@ def train(args):
     os.makedirs(final_path, exist_ok=True)
     
     # Initialize agents
-    agents = [load_pretrained_agent_for_rl(state_size=17, action_size=10, player_id=i) for i in range(env.n_players)]
+    agents = [load_pretrained_agent_for_rl(state_size=16, action_size=10, player_id=i) for i in range(env.n_players)]
     
     # For keeping track of cumulative rewards
     all_rewards = [[] for _ in range(env.n_players)]
@@ -163,15 +163,13 @@ def train(args):
                         # Remember experience
                         if env.terminal != True and current_player in states:
                             next_state = agents[current_player]._process_state(next_obs[current_player])
-                            agents[current_player].remember(
+                            agents[current_player].remember_action(
                                 states[current_player],
                                 actions[current_player],
                                 reward,
                                 next_state,
                                 False
                             )
-                        
-                        obs = next_obs
             
             else:
                 env.table._advance_game()
@@ -182,7 +180,7 @@ def train(args):
                         episode_rewards[player_id] = env.rewards[player_id]
                         if player_id in states:
                             # Update with final rewards
-                            agents[player_id].remember(
+                            agents[player_id].remember_action(
                                 states[player_id],
                                 actions[player_id],
                                 env.rewards[player_id],  # Final rewards from the environment
@@ -191,22 +189,23 @@ def train(args):
                             )
 
                     break
+            
+            obs = next_obs
         
         # After episode ends, train all agents
-        # for player_id in range(env.n_players):
-        #     agents[player_id].replay(args.batch_size)
+        for player_id in range(env.n_players):
+            # Hand is complete - store final result
+            agents[player_id].complete_hand(env.rewards[player_id])
+            
+            agents[player_id].replay(args.batch_size)
            
-            # # Update target networks periodically
-            # if episode % args.target_update == 0:
-            #     agents[player_id].update_target_model()
+            # Update target networks periodically
+            if episode % args.target_update == 0:
+                agents[player_id].update_target_model()
         
         # Record rewards
         for player_id in range(env.n_players):
             all_rewards[player_id].append(episode_rewards[player_id])
-        total = 0
-        for player_id, agent in enumerate(agents):
-            player_total = env.table.players[player_id].balance + env.table.players[player_id].stack
-            total += player_total
 
         # Print progress
         if episode % 100 == 0 and episode != 0:
@@ -216,13 +215,13 @@ def train(args):
         # Save models periodically
         if episode % args.save_freq == 0 and episode != 0:
             for player_id, agent in enumerate(agents):
-                player_total = env.table.players[player_id].balance + env.table.players[player_id].stack
-                save_path = os.path.join(args.save_path, f"player_{player_id}/dqn_player_{player_id}_ep{episode}.pt")
+                player_total = env.table.players[player_id].balance + env.table.players[player_id].stack - args.initial_stack
+                save_path = os.path.join(args.save_path, f"player_{player_id}/dqn_player_{player_id}_ep{episode/args.save_freq}.pt")
                 agent.save(save_path, player_total)
     
     # Save final models
     for player_id, agent in enumerate(agents):
-        player_total = env.table.players[player_id].balance + env.table.players[player_id].balance
+        player_total = env.table.players[player_id].balance + env.table.players[player_id].balance - args.initial_stack
         save_path = os.path.join(args.save_path, f"final/dqn_player_{player_id}_final.pt")
         agent.save(save_path, player_total)
         
@@ -242,9 +241,9 @@ def evaluate(args):
     # Initialize agents
     agents = []
     for i in range(args.n_players):
-        agent = DQNAgent(state_size=17, action_size=10, player_id=i)
+        agent = DQNAgent(state_size=16, action_size=10, player_id=i)
         if os.path.exists(args.save_path):
-            load_path = os.path.join(args.save_path, f"final/dqn_player_{i}_ep10000.pt")
+            load_path = os.path.join(args.save_path, f"final/dqn_player_{i}_final.pt")
             agent.load(load_path)
             agent.epsilon = 0.0  # No exploration during evaluation
         else:
