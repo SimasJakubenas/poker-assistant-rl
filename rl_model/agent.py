@@ -194,7 +194,7 @@ if has_torch:
             # Reset for the next hand
             self.reset_current_hand()
         
-        def replay(self, batch_size=4):
+        def replay(self, batch_size):
             """Train the model with hand-level experience replay."""
             if len(self.hand_memory) < batch_size:
                 return
