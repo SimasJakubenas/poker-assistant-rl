@@ -3,6 +3,7 @@ import os
 # Import the poker environment and UI
 from rl_model.rl_environment import PokerEnv
 from rl_model.agent import DQNAgent
+from rl_model.random_agent import RandomAgent
 
 
 try:
@@ -28,12 +29,30 @@ def evaluate(args):
     agents = []
     for i in range(args.n_players):
         agent = DQNAgent(state_size=16, action_size=10, player_id=i)
-        if os.path.exists(f"outputs/models/rl/{args.save_path}"):
-            load_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"v01/final/dqn_player_{i}_final.pt")
-            agent.load(load_path)
-            agent.epsilon = 0.0  # No exploration during evaluation
+        if i == 0:
+            if os.path.exists(f"outputs/models/rl/{args.save_path}") and i == 0:
+                load_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"/final/dqn_player_{i}_final.pt")
+                agent.load(load_path)
+                agent.epsilon = 0.0  # No exploration during evaluation
+                    
+            else:
+                print(f"RL model not found at outputs/models/rl/{args.save_path} loading sl model")
+                if os.path.exists(f"outputs/models/sl"):
+                    load_path = os.path.join(f"outputs/models/sl", f"/pretrained_hero_agent.pt")
+                    agent.load(load_path)
+                    agent.epsilon = 0.0  # No exploration during evaluation
+                else:
+                    print(f"SL model not found at outputs/models/sl loading random agent")
+                    agent = RandomAgent(i)
+                    
         else:
-            print(f"Model not found at outputs/models/rl/{args.save_path}")
+            if os.path.exists(f"outputs/models/sl"):
+                load_path = os.path.join(f"outputs/models/sl", f"/pretrained_hero_agent.pt")
+                agent.load(load_path)
+                agent.epsilon = 0.0  # No exploration during evaluation
+            else:
+                print(f"SL model not found at outputs/models/sl loading random agent")
+                agent = RandomAgent(i)
 
         agents.append(agent)
     
