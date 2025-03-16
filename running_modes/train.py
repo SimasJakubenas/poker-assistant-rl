@@ -72,10 +72,10 @@ def train(args):
     
     # Create directory for saving models
     for player in range(args.n_players):
-        partial_path = os.path.join(args.save_path, f"player_{player}")
+        partial_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"player_{player}")
         os.makedirs(partial_path, exist_ok=True)
         
-    final_path = os.path.join(args.save_path, f"final")
+    final_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"final")
     os.makedirs(final_path, exist_ok=True)
     
     # Initialize agents
@@ -171,13 +171,13 @@ def train(args):
         if episode % args.save_freq == 0 and episode != 0:
             for player_id, agent in enumerate(agents):
                 player_total = env.table.players[player_id].balance + env.table.players[player_id].stack - args.initial_stack
-                save_path = os.path.join(args.save_path, f"player_{player_id}/dqn_player_{player_id}_ep{episode/args.save_freq}.pt")
+                save_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"player_{player_id}/dqn_player_{player_id}_ep{episode/args.save_freq}.pt")
                 agent.save(save_path, player_total)
     
     # Save final models
     for player_id, agent in enumerate(agents):
         player_total = env.table.players[player_id].balance + env.table.players[player_id].balance - args.initial_stack
-        save_path = os.path.join(args.save_path, f"final/dqn_player_{player_id}_final.pt")
+        save_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"final/dqn_player_{player_id}_final.pt")
         agent.save(save_path, player_total)
         
     env.reset()

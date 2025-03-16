@@ -35,7 +35,7 @@ def parse_args():
                           help="Batch size for training")
         parser.add_argument("--target_update", type=int, default=100,
                           help="Episodes between target network updates")
-        parser.add_argument("--save_path", type=str, default="outputs/models/rl",
+        parser.add_argument("--save_path", type=str, default="v01",
                           help="Path to save the trained model")
         parser.add_argument("--save_freq", type=int, default=1000,
                           help="Path to save the trained model")

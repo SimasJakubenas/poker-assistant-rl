@@ -28,12 +28,12 @@ def evaluate(args):
     agents = []
     for i in range(args.n_players):
         agent = DQNAgent(state_size=16, action_size=10, player_id=i)
-        if os.path.exists(args.save_path):
-            load_path = os.path.join(args.save_path, f"v01/final/dqn_player_{i}_final.pt")
+        if os.path.exists(f"outputs/models/rl/{args.save_path}"):
+            load_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"v01/final/dqn_player_{i}_final.pt")
             agent.load(load_path)
             agent.epsilon = 0.0  # No exploration during evaluation
         else:
-            print(f"Model not found at {args.save_path}")
+            print(f"Model not found at outputs/models/rl/{args.save_path}")
 
         agents.append(agent)
     
@@ -51,11 +51,8 @@ def evaluate(args):
                 action = agents[current_player].act(obs)
                 
                 if action is not None:
-                    obs, reward, done, prev_player = env.step(action)
+                    obs, _, done, prev_player = env.step(action)
                     
-                    # Save reward for the current player
-                    # if not done:
-                    #     total_rewards[current_player] += reward
             else:
                 # Add final rewards at the end of the hand
                 env.table._advance_game()
