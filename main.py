@@ -14,7 +14,7 @@ except ImportError:
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Poker RL Environment")
-    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="evaluate",
+    parser.add_argument("--mode", choices=["ui", "train", "evaluate"], default="ui",
                       help="Run mode: ui, train, or evaluate")
     parser.add_argument("--n_players", type=int, default=6,
                       help="Number of players (2-6)")
