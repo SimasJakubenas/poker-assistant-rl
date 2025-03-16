@@ -1,4 +1,5 @@
 import pygame
+import os
 import sys
 import math
 import time
@@ -7,7 +8,7 @@ from typing import Dict, List, Tuple, Optional
 # Import the poker environment
 from rl_model.random_agent import RandomAgent
 from rl_model.rl_environment import PokerEnv, PokerAction
-
+from rl_model.agent import DQNAgent
 
 class PokerTableUI:
     """User interface for the poker environment using Pygame."""
@@ -40,7 +41,7 @@ class PokerTableUI:
         's': '♠'
     }
     
-    def __init__(self, env: PokerEnv, width: int = 1200, height: int = 900, human_player: Optional[int] = None):
+    def __init__(self, env: PokerEnv, save_path: str, width: int = 1200, height: int = 900, human_player: Optional[int] = None):
         """
         Initialize the poker table UI.
         
@@ -54,6 +55,7 @@ class PokerTableUI:
         self.width = width
         self.height = height
         self.human_player = human_player
+        self.save_path = save_path
         
         # Initialize pygame
         pygame.init()
@@ -159,10 +161,17 @@ class PokerTableUI:
         # Create agents for AI players
         self.agents = []
         for i in range(n_players):
+            agent = DQNAgent(state_size=16, action_size=10, player_id=i)
             if i == self.human_player:
                 self.agents.append(None)  # Human player
             else:
-                self.agents.append(RandomAgent(i))
+                if os.path.exists(f"outputs/models/rl/{self.save_path}"):
+                    load_path = os.path.join(f"outputs/models/rl/{self.save_path}", f"/final/dqn_player_{i}_final.pt")
+                    agent.load(load_path)
+                    self.agents.append(agent)
+                else:
+                    print(f"RL model not found at outputs/models/rl/{self.save_path} loading random agent")
+                    self.agents.append(RandomAgent(i))
                 
         # Reset the environment
         self.game_state = self.env.reset()
