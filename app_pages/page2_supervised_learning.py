@@ -3,11 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import random
-import torch
-import torch.nn as nn
-
-from rl_model.agent import DQNAgent
 
 
 COLOR1 = '#26b6a9'
@@ -114,5 +109,3 @@ def plot_coloring(plt: plt.figure) -> None:
 
     ax = plt.axes()
     plt.setp(ax.spines.values(), color=COLOR1)
-
-

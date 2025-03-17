@@ -22,6 +22,8 @@ def page_summary():
         f"* **FLOP** Next stage where 3 community cards are shown prior to a round of betting.\n "
         f"* **TURN** Next stage where 1 community card is shown prior to a round of betting.\n "
         f"* **RIVER** Final stage where 1 community card is shown prior to a round of betting.\n\n"
+        f"* **Pot** total amount playes have bet.\n\n"
+        f"* **Rake** amount taked from the pot by the poker website.\n\n"
 
         f"**Project Dataset**\n"
         f"* The dataset for this project is a personal hand history of 12000+ hands from a \n "

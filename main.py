@@ -39,6 +39,8 @@ def parse_args():
                           help="Path to save the trained model")
         parser.add_argument("--save_freq", type=int, default=1000,
                           help="Path to save the trained model")
+        parser.add_argument("--select_agent", type=int, default=0,
+                          help="Select agent for evaluation")
     
     return parser.parse_args()
 
