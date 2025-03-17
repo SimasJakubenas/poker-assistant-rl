@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 # Import the poker environment and UI
 from rl_model.rl_environment import PokerEnv
@@ -29,7 +30,7 @@ def evaluate(args):
     agents = []
     for i in range(args.n_players):
         agent = DQNAgent(state_size=16, action_size=10, player_id=i)
-        if i == 0:
+        if i == args.select_agent:
             if os.path.exists(f"outputs/models/rl/{args.save_path}") and i == 0:
                 load_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"/final/dqn_player_{i}_final.pt")
                 agent.load(load_path)
@@ -59,7 +60,8 @@ def evaluate(args):
     # Evaluation loop
     total_rewards = [0.0 for _ in range(len(agents))]
     num_episodes = 1000
-    
+    data = []
+    df = pd.DataFrame(data)
     for episode in range(num_episodes):
         obs = env.reset()
         done = False
@@ -78,14 +80,19 @@ def evaluate(args):
                 if env.table.hand_complete == True:
                     env.calculate_final_rewards(prev_player)
 
-                    for player_id in range(len(agents)):
-                        total_rewards[player_id] += env.rewards[player_id]
+                    data.append(env.rewards)
                     
                     break
         
         if episode % 10 == 0:
             print(f"Episode {episode}/{num_episodes}")
     
-    # Calculate average rewards
-    avg_rewards = [r / num_episodes for r in total_rewards]
-    print(f"Average rewards after training: {avg_rewards}")
+    df = pd.DataFrame(data)
+    
+    output_folder = f"outputs/datasets/dataframe/{args.save_path}"
+    try:
+        os.makedirs(name=output_folder) # outputs/models/sl folder
+    except Exception as e:
+        print(e)
+    
+    df.to_csv(f"{output_folder}/eval.csv", index=False)
