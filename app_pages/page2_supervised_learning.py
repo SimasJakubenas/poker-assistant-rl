@@ -44,7 +44,7 @@ def supervised_learning():
     
     plot_win_rate(df)
     
-    win_rate = round(float(df.iloc[-1]['Total'] * 10 /100), 1)
+    win_rate = round(float(df.iloc[-1]['Total'] * 10 / (df.shape[0] /100)), 1)
     st.write(
         f"Hero's win rate is **{win_rate} bb/100**. this expression (bb/100) is used commonly amongst "
         f"poker players to measure someone's winrate. This expression normalises the value independenly of "

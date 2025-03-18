@@ -3,10 +3,14 @@ import streamlit as st
 
 def page_summary():
 
+    st.write("## Reinforcement Learnng Poker")
+    
+    st.image("src/images/game_view.png")
+    
     st.write("### Quick Project Summary")
 
     st.info(
-        f"This project aims to train reinforcement model agents to play 6 handed Holdem poker\n\n"
+        f"This project aims to train reinforcement model agents to play 6 handed  TexasHoldem poker\n\n"
         f"**Project Terms & Jargon**\n"
         f"* **Hero** a player of focus.\n"
         f"* **BB** a andatory bet at the start of the hand. Also An initial minumum bet.\n"

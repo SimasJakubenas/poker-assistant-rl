@@ -18,7 +18,10 @@ def reinforcement_learning():
     st.info(
         f"* We will attempt to train dqn agents with reinforcement learning and will try and reach a conclusive "
         f"result. \n"
-        f"* Tabs represent test results at different stages of the project."
+        f"* Tabs represent test results at different stages of the project. \n"
+        f"* We run training with: \n\n'**python main.py --mode train --episodes 100000 --save_path v0x**'. \n"
+        f"* Then selecting best performing agent from the plot and we run evluation with: \n\n"
+        f"'**python main.py --mode evaluate --save_path v0x --select_agent x**'. \n"
     )
 
     st.write("---")
@@ -50,7 +53,7 @@ def reinforcement_learning():
         "intro": # 2
             """I've implemented memory replay and made sure it remembers and replays whole hands instead of singe actions'""",
         "resolution":
-            """This seemed to have screwed the dabalances in an unatural way. trying different batch variations 
+            """This seemed to have screwed the balances in an unatural way. trying different batch variations 
             had no effect on the outcome."""
         }
     ]
@@ -60,22 +63,25 @@ def reinforcement_learning():
     
     for i, tab in enumerate(tabs):
         with tab:
-            st.write(train_result_description[i]['intro'])
+            st.write("#### Training")
+            if len(tabs) == len(train_result_description):
+                st.write(train_result_description[i]['intro'])
             plot_agents_performance(folder_names[i])
-            st.write(train_result_description[i]['resolution'])
+            if len(tabs) == len(train_result_description):
+                st.write(train_result_description[i]['resolution'])
             tab_counter += 1
-            if i == 1:
+            if i != 0:
                 folder_path = f"outputs/datasets/dataframe/v0{i+1}"
                 if os.path.exists(folder_path): 
                     data = pd.read_csv(f"{folder_path}/eval.csv")
                     data['Total'] = data['3'].cumsum().round(2)
                     win_rate = round(float(data.iloc[-1]['Total'] / 10), 1)
+                    st.write("#### Evaluation")
                     plot_win_rate(data)
                     st.write(
-                        f"This shows {win_rate} bb/100 win rate. Anything over 10 bb/10 is exeptional ir extremely hard to achieve. "
-                        f"the result indicates that there's something inherently wrong with our model."
+                        f"This shows {win_rate} bb/100 win rate."
                         )
-
+                    
 
 def plot_win_rate(df: pd.DataFrame, ) -> None:
     

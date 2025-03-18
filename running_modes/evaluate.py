@@ -31,7 +31,7 @@ def evaluate(args):
     for i in range(args.n_players):
         agent = DQNAgent(state_size=16, action_size=10, player_id=i)
         if i == args.select_agent:
-            if os.path.exists(f"outputs/models/rl/{args.save_path}") and i == 0:
+            if os.path.exists(f"outputs/models/rl/{args.save_path}"):
                 load_path = os.path.join(f"outputs/models/rl/{args.save_path}", f"/final/dqn_player_{i}_final.pt")
                 agent.load(load_path)
                 agent.epsilon = 0.0  # No exploration during evaluation
