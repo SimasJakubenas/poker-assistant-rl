@@ -56,7 +56,7 @@ def reinforcement_learning():
             """This seemed to have screwed the balances in an unatural way. trying different batch variations 
             had no effect on the outcome."""
         }
-    ]
+    ][::-1]
     
     tabs = st.tabs(folder_names)[::-1]
     tab_counter = 0
