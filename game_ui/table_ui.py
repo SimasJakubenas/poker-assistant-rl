@@ -41,7 +41,7 @@ class PokerTableUI:
         's': '♠'
     }
     
-    def __init__(self, env: PokerEnv, save_path: str, width: int = 1200, height: int = 900, human_player: Optional[int] = None):
+    def __init__(self, env: PokerEnv, save_path: str, width: int = 1200, height: int = 900, human_player: Optional[int] = None, random_agents: bool = False):
         """
         Initialize the poker table UI.
         
@@ -56,6 +56,7 @@ class PokerTableUI:
         self.height = height
         self.human_player = human_player
         self.save_path = save_path
+        self.random_agents = random_agents
         
         # Initialize pygame
         pygame.init()
@@ -165,12 +166,15 @@ class PokerTableUI:
             if i == self.human_player:
                 self.agents.append(None)  # Human player
             else:
-                if os.path.exists(f"outputs/models/rl/{self.save_path}"):
-                    load_path = os.path.join(f"outputs/models/rl/{self.save_path}", f"/final/dqn_player_{i}_final.pt")
-                    agent.load(load_path)
-                    self.agents.append(agent)
+                if not self.random_agents:
+                    if os.path.exists(f"outputs/models/rl/{self.save_path}"):
+                        load_path = os.path.join(f"outputs/models/rl/{self.save_path}", f"/final/dqn_player_{i}_final.pt")
+                        agent.load(load_path)
+                        self.agents.append(agent)
+                    else:
+                        print(f"RL model not found at outputs/models/rl/{self.save_path} loading random agent")
+                        self.agents.append(RandomAgent(i))
                 else:
-                    print(f"RL model not found at outputs/models/rl/{self.save_path} loading random agent")
                     self.agents.append(RandomAgent(i))
                 
         # Reset the environment

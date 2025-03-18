@@ -9,5 +9,5 @@ def run_ui(args):
                  big_blind=args.big_blind, 
                  initial_stack=args.initial_stack)
     
-    ui = PokerTableUI(env, save_path=args.save_path, human_player=args.human_player)
+    ui = PokerTableUI(env, save_path=args.save_path, human_player=args.human_player, random_agents=args.random_agents)
     ui.start_game(args.n_players)

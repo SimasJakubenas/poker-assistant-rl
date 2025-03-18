@@ -41,6 +41,8 @@ def parse_args():
                           help="Path to save the trained model")
         parser.add_argument("--select_agent", type=int, default=0,
                           help="Select agent for evaluation")
+        parser.add_argument("--random_agents", type=bool, default=False,
+                          help="Whether agents are random or trained")
     
     return parser.parse_args()
 
