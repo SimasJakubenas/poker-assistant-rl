@@ -2,7 +2,7 @@
 
 This is my Final Project for the studies with [codeacademy.lt](https://codeacademy.lt/) .
 With this project I will be attempting to create Deep Q-Learning model that trains agents to play a 6 handed no-limit Texas Holdem poker.
-
+Link to dashboard - [poker rl](https://poker-rl.streamlit.app/)
 ---
 
 ## Contents
@@ -111,20 +111,22 @@ The variable for the dataset are explained in detail:
 ### BUG 2
 * If player puts in more chips than anybody else they should get those chips back prior to showdown. Now they get it back as side pot at the end of hand. Will be a problem when rake is introduced
 
-## Deployment
-
 ## Usage
 
 ### Running the UI
 
+The pre-trained model is included in the repository however you can pre-train the model by using the provided notebook in supervised_learning/
+
+to run dashboard localy type streamlit run app.py in the terminal
+
 ```bash
-python main.py --mode ui --n_players 6 --human_player 0
+python main.py --mode ui --n_players 6 --human_player 0 --random_agents False
 ```
 
 ### Training an Agent
 
 ```bash
-python main.py --mode train --episodes 10000 --save_path v0x
+python main.py --mode train --episodes 100000 --save_path v0x
 ```
 
 ### Evaluating a Trained Agent
