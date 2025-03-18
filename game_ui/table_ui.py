@@ -227,6 +227,8 @@ class PokerTableUI:
                 self.env.table._advance_game()
             
             if self.env.table.hand_complete == True:
+                # Render the game
+                self.render()
                 # Display the final state for a while
                 pygame.time.wait(3000)
                 self.game_state = self.env.reset()
