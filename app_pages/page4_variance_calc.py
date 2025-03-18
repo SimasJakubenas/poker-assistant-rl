@@ -37,7 +37,7 @@ def variance_calculator():
             results = np.random.normal(loc=bb_per_hand, scale=std_dev, size=int(hands))
             cumulative_results = np.cumsum(results)
             simulations.append(cumulative_results)
-            final_values.append(cumulative_results[-1])  # Store the last value
+            final_values.append(round(cumulative_results[-1], 2))  # Store the last value
 
         plot_coloring(plt)
 
@@ -58,7 +58,7 @@ def variance_calculator():
         # Display the final cumulative results as a table
         st.write("### Final Cumulative Results for Each Simulation")
         final_results_df = {"Simulation": [f"Simulation {i+1}" for i in range(num_simulations)],
-                            "Final Value (Cumulative bb)": round(final_values, 2)}
+                            "Final Value (Cumulative bb)": final_values}
         st.dataframe(final_results_df)
 
     else:
