@@ -30,7 +30,7 @@ def reinforcement_learning():
     parent_folder = "outputs/models/rl"
 
     # Get all folder names in the parent folder
-    folder_names = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
+    folder_names = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))][::-1]
 
     train_result_description = [
         {
@@ -58,10 +58,10 @@ def reinforcement_learning():
         }
     ]
     
-    tabs = st.tabs(folder_names)
+    tabs = st.tabs(folder_names)[::-1]
     tab_counter = 0
     
-    for i, tab in enumerate(tabs[::-1]):
+    for i, tab in enumerate(tabs):
         with tab:
             st.write("#### Training")
             if len(tabs) == len(train_result_description):
@@ -70,8 +70,8 @@ def reinforcement_learning():
             if len(tabs) == len(train_result_description):
                 st.write(train_result_description[i]['resolution'])
             tab_counter += 1
-            if i != 0:
-                folder_path = f"outputs/datasets/dataframe/v0{i+1}"
+            if i != len(tabs) - i:
+                folder_path = f"outputs/datasets/dataframe/v0{len(tabs) - i}"
                 if os.path.exists(folder_path): 
                     data = pd.read_csv(f"{folder_path}/eval.csv")
                     data['Total'] = data['3'].cumsum().round(2)
