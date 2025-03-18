@@ -61,12 +61,12 @@ def reinforcement_learning():
     tabs = st.tabs(folder_names)
     tab_counter = 0
     
-    for i, tab in enumerate(tabs):
+    for i, tab in enumerate(tabs[::-1]):
         with tab:
             st.write("#### Training")
             if len(tabs) == len(train_result_description):
                 st.write(train_result_description[i]['intro'])
-            plot_agents_performance(folder_names[i])
+            plot_agents_performance(folder_names[::-1][i])
             if len(tabs) == len(train_result_description):
                 st.write(train_result_description[i]['resolution'])
             tab_counter += 1
