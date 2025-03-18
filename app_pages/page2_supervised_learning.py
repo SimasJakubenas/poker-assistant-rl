@@ -26,10 +26,10 @@ def supervised_learning():
         )
     
     if st.checkbox("Inspect Hand Data"):
-        st.image("src/images/hand_example.png")
+        st.image("src/images/hand_example.PNG")
     
     
-    df = pd.read_csv('outputs\datasets\dataframe\hero_winrate.csv')
+    df = pd.read_csv('outputs/datasets/dataframe/hero_winrate.csv')
 
     if st.checkbox("Parsed Data Dataframe"):
         st.write(
@@ -67,14 +67,14 @@ def supervised_learning():
         )
     
     if st.checkbox("Show Model"):
-        st.image("src/images/model.png")
+        st.image("src/images/model.PNG")
     
     st.write(
         f"Model shows loss as mse 5,3 and 5,6 for train and test splits respectively. It does now appear that the "
         f"model is training at all, but I'm out of time and ideas so I'm plowing ahead."
         )
     
-    st.image("src/images/sl_training_results.png")
+    st.image("src/images/sl_training_results.PNG")
 
     
 
