@@ -30,7 +30,7 @@ def reinforcement_learning():
     parent_folder = "outputs/models/rl"
 
     # Get all folder names in the parent folder
-    folder_names = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
+    folder_names = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))][::-1]
 
     train_result_description = [
         {
@@ -56,7 +56,7 @@ def reinforcement_learning():
             """This seemed to have screwed the balances in an unatural way. trying different batch variations 
             had no effect on the outcome."""
         }
-    ]
+    ][::-1]
     
     tabs = st.tabs(folder_names)
     tab_counter = 0
@@ -66,7 +66,7 @@ def reinforcement_learning():
             st.write("#### Training")
             if len(tabs) == len(train_result_description):
                 st.write(train_result_description[i]['intro'])
-            plot_agents_performance(folder_names[i])
+            plot_agents_performance(folder_names[i][::-1])
             if len(tabs) == len(train_result_description):
                 st.write(train_result_description[i]['resolution'])
             tab_counter += 1

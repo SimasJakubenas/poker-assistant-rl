@@ -5,7 +5,7 @@ def page_summary():
 
     st.write("## Reinforcement Learnng Poker")
     
-    st.image("src/images/game_view.png")
+    st.image("src/images/game_view.PNG")
     
     st.write("### Quick Project Summary")
 
