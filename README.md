@@ -72,7 +72,7 @@ The Project Summary page outlines the project's terminology and jargon, provides
 
 The variable for the dataset are explained in detail:
 
-![dashboard one](src/images/readme/page_1.png)
+![dashboard one](src/images/readme/page_1.PNG)
 
 ### Page 2
 ### Supervised Learning Study
@@ -80,11 +80,11 @@ The variable for the dataset are explained in detail:
 
     * data structure
     
-    ![dashboard two](src/hand_example.png)
+    ![dashboard two](src/hand_example.PNG)
 
     * shows hero's win rate
     
-    ![dashboard two](src/images/readme/page_2.png)
+    ![dashboard two](src/images/readme/page_2.PNG)
 
     * aend SL trainign results
 
@@ -98,7 +98,7 @@ The variable for the dataset are explained in detail:
 ### Hypothesis and validation
 * Shows variance calculator
     
-    ![dashboard four](src/images/readme/page_3.png)
+    ![dashboard four](src/images/readme/page_3.PNG)
 
 ## Unfixed Bugs
 
